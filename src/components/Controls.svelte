@@ -74,6 +74,12 @@
     else audio.muted = true
     updateMeta()
   }
+  function handleLoop() {
+    if (isLocked) return
+    if (audio.loop) audio.loop = false
+    else audio.loop = true
+    updateMeta()
+  }
 
   function filePickerHandler(e: Event) {
     if (!(e.target instanceof HTMLInputElement)) return
@@ -96,6 +102,7 @@
       <input type="file" id="upload" accept=".mp3,.ogg,.wav" onchange={filePickerHandler} />
     </label>
     <button onclick={handlePlay} class="ctrl" class:play={audio.paused} class:pause={!audio.paused} aria-label="Toggle play"></button>
+    <button onclick={handleLoop} class="ctrl" class:doloop={audio.loop} class:noloop={!audio.loop} aria-label="Toggle play"></button>
     <div class="slider">
       <button onclick={handleMute} class="ctrl" class:mute={audio.muted} class:unmute={!audio.muted} aria-label="Toggle mute"></button>
       <input type="range" min={0} max={100} value={volume} oninput={handleVolSlider} />
@@ -177,6 +184,12 @@
         }
         &.upload::after {
           background-position: -96px -1px;
+        }
+        &.doloop::after {
+          background-position: -120px -1px;
+        }
+        &.noloop::after {
+          background-position: -144px -1px;
         }
         &:hover::after {
           filter: brightness(0);
