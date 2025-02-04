@@ -1,0 +1,41 @@
+@font-face {
+  src: url('/fonts/Minecraft-Seven_v2-Regular.otf');
+  font-family: "Minecraft Seven";
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --accent-color: #9660f3;
+
+  padding: 0;
+  margin: 0;
+  font-family: "Minecraft Seven";
+  font-size: 16px;
+  image-rendering: pixelated;
+
+  button {
+    cursor: pointer;
+    outline: solid 2px var(--accent-color);
+    border: none;
+    background-color: #0000;
+    color: #fff;
+
+    font-family: "Minecraft Seven";
+    font-size: 16px;
+    text-rendering: geometricPrecision;
+    padding: 4px;
+
+    transition:
+      background-color 100ms,
+      color 100ms;
+
+    &:hover {
+      background-color: var(--accent-color);
+      color: #000;
+    }
+  }
+}

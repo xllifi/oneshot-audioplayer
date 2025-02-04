@@ -1,0 +1,19 @@
+{
+  "singleQuote": true,
+  "semi": false,
+  "printWidth": 200,
+  "trailingComma": "none",
+  "plugins": [
+    "prettier-plugin-svelte",
+    "prettier-plugin-css-order"
+  ],
+  "cssDeclarationSorterOrder": "smacss",
+  "overrides": [
+    {
+      "files": "*.svelte",
+      "options": {
+        "parser": "svelte"
+      }
+    }
+  ]
+}

@@ -1,180 +1,248 @@
 <script lang="ts">
-  import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { onMount } from "svelte";
+  import { getCurrentWindow } from '@tauri-apps/api/window'
+  import { onMount } from 'svelte'
+  import { randNum } from './helpers'
+  import { fade } from 'svelte/transition'
+  import Controls from '../components/Controls.svelte'
+  import Images, { gramophone, setNikoSleep } from '../components/Images.svelte'
 
-  const window = getCurrentWindow();
-
-  // Gramophone animation
-  let gramophone_sprite_no = $state(1);
-  let gramophone_reverse = $state(false);
-  setInterval(() => {
-    if (gramophone_reverse) {
-      gramophone_sprite_no -= 1;
-      if (gramophone_sprite_no <= 1) {
-        gramophone_reverse = false;
-      }
-      return;
-    }
-    gramophone_sprite_no += 1;
-    if (gramophone_sprite_no >= 5) {
-      gramophone_reverse = true;
-    }
-  }, 100);
-
-  // Niko animation
-  let niko_sprite_no = $state(1);
-  setInterval(() => {
-    if (niko_sprite_no >= 4) {
-      niko_sprite_no = 1;
-      return;
-    }
-    niko_sprite_no += 1;
-  }, 300);
+  const window = getCurrentWindow()
 
   // Notes
-  let gramophone: HTMLElement = $state() as HTMLElement;
-  let gramophone_left: number = $state(0);
-  let gramophone_top: number = $state(0);
-  let notes: Note[] = [
-    {
-      right: 0,
-      bottom: 0,
-      type: 1,
-      color: "#55f"
+  let gramophone_left: number = $state(0)
+  let gramophone_top: number = $state(0)
+  let notes: Note[] = $state([])
+  onMount(setNotesSize)
+  function setNotesSize() {
+    gramophone_left = gramophone.getBoundingClientRect().left
+    gramophone_top = gramophone.getBoundingClientRect().top
+  }
+
+  // Generate notes
+  const maxvel = 12
+  setInterval(() => {
+    if (audio.paused) return
+    if (notes.length >= 6) return
+    const xvel = randNum(1, maxvel)
+    pushNote({
+      id: 0,
+      age: 0,
+      x: randNum(0, 10),
+      y: randNum(0, 10),
+      xvel: xvel / randNum(3, 5),
+      yvel: (maxvel - xvel) / randNum(3, 5),
+      type: Math.floor(randNum(0, 2)),
+      color: `#${randNum(25, 192).toString(16)}${randNum(25, 192).toString(16)}${randNum(25, 192).toString(16)}`
+    })
+  }, 350)
+
+  // Animate notes
+  setInterval(() => {
+    const newNotes = notes.map((note) => {
+      note.x += note.xvel
+      note.y += note.yvel
+      if (note.age > 15) {
+        const tmp = note.xvel
+        note.xvel = note.yvel
+        note.yvel = tmp
+        note.age = 0
+      } else {
+        note.age++
+      }
+      return note
+    })
+    notes = newNotes.filter((note) => !(note.x + note.y > 160))
+  }, 12)
+
+  // Helper for adding notes
+  function pushNote(note: Note): void {
+    let id = 0
+    if (notes.length > 0 && notes[0].id != undefined) {
+      // id might store some insane number so dont do it
+      if (notes[0].id > 127 && notes.filter((x) => x.id == 0).length == 0) {
+        id = 0
+      } else {
+        id = notes[0].id + 1
+      }
     }
-  ]
-  onMount(() => {
-    gramophone_left = gramophone.getBoundingClientRect().left;
-    gramophone_top = gramophone.getBoundingClientRect().top;
-  });
+    note = { ...note, id }
+    notes = [note, ...notes]
+  }
+
+  // $inspect(`Notes length ` + notes.length)
 
   type Note = {
-    right: number
-    bottom: number
-    type: 0 | 1 | 2
+    id: number
+    age: number
+    x: number
+    y: number
+    xvel: number
+    yvel: number
+    type: number
     color: `#${string}`
   }
-  
+
+  // Audio player
+  let isLocked = $state(true)
+  const audio = new Audio()
+  function setAudioFile(file: File) {
+    audio.src = URL.createObjectURL(file)
+    isLocked = false
+    audio.play()
+    setNikoSleep(false)
+  }
+
+  function handleDrop(e: DragEvent) {
+    e.preventDefault()
+    console.log(e)
+    hideDrag()
+
+    if (!e.dataTransfer) return
+
+    let file: File | null
+    if (e.dataTransfer.items) {
+      file = [...e.dataTransfer.items].filter((x) => x.kind == 'file')[0].getAsFile()
+    } else {
+      file = [...e.dataTransfer.items][0]
+    }
+
+    if (!file) return
+    setAudioFile(file)
+  }
+
+  let isDragOver: boolean = $state(false)
+  function showDrag(e: DragEvent) {
+    e.preventDefault()
+    console.log(e)
+    isDragOver = true
+  }
+  function hideDrag() {
+    isDragOver = false
+  }
 </script>
 
+<svelte:window onresize={setNotesSize} />
+<svelte:document
+  ondragenter={showDrag}
+  ondrop={handleDrop}
+  ondragover={(e) => {
+    e.preventDefault()
+  }}
+/>
+
+{#if isDragOver}
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="dragover" transition:fade={{ duration: 100 }} ondragleave={hideDrag}>
+    <p>Drop files here</p>
+  </div>
+{/if}
 <main class="container">
   <div data-tauri-drag-region class="titlebar">
     <span class="note"></span>
-    <p class="text">OneShot WME music player</p>
+    <p class="text">OneShot WME audio player</p>
     <div class="buttons">
-      <button
-        onclick={window.minimize}
-        style="background-position: -1px -1px;"
-        aria-label="Minimize window"
-      ></button>
-      <button
-        onclick={window.close}
-        style="background-position: 27px -1px;"
-        aria-label="Close window"
-      ></button>
+      <button onclick={window.minimize} style="background-position: -1px -1px;" aria-label="Minimize window"></button>
+      <button onclick={window.close} style="background-position: 27px -1px;" aria-label="Close window"></button>
     </div>
   </div>
-  <div class="images">
-    <div class="sun"></div>
-    <div
-      bind:this={gramophone}
-      class="gramophone"
-      style="background-position: {gramophone_sprite_no}00px 0;"
-    ></div>
-    <div
-      class="niko"
-      style="background-position: {niko_sprite_no}00px 0;"
-    ></div>
-  </div>
-  <div class="controls">
-    {gramophone_left}
-    {gramophone_top}
-  </div>
+  <Images />
+  <Controls {audio} {isLocked} {setAudioFile}/>
 </main>
-<secondary class="particles" style="width: {gramophone_left + 64}px; height: {gramophone_top + 64}px;">
-  {#each notes as note}
+<div class="notes" style="width: {gramophone_left + 54 + 50}px;height: {gramophone_top + 58 + 50}px;">
+  {#each notes as note, key (note.id)}
     <span
       class="note"
-      style="right: {note.right};
-      bottom: {note.bottom};"
+      style="transform: translate(-{note.x + 50}px, -{note.y + 50}px);
+      mask-position: {note.type * 16}px;
+      background-color: {note.color};
+      opacity: {(160 - (note.x + note.y)) / 12.5}"
     ></span>
   {/each}
-</secondary>
+</div>
 
-<style>
-  @font-face {
-    src: url("fonts/Minecraft-Seven_v2-Regular.otf");
-    font-family: "Minecraft Seven";
-  }
+<style lang="scss">
+  @use '../../static/css/main.scss';
 
-  * {
-    margin: 0;
-    padding: 0;
-  }
-
-  :root {
-    --accent-color: #9660f3;
-
-    padding: 0;
-    margin: 0;
-    font-family: "Minecraft Seven";
-    font-size: 16px;
-    text-rendering: geometricPrecision;
-    line-height: 24px;
-    font-weight: 400;
-    image-rendering: pixelated;
-
-    background-color: #000;
-    color: #fff;
-  }
-
-  .particles {
-    pointer-events: none;
+  div.dragover {
+    display: flex;
+    z-index: 5;
     position: absolute;
-    left: 0;
-    top: 0;
-
+    align-items: center;
+    justify-content: center;
     width: 100dvw;
     height: 100dvh;
+    outline: dashed 2px var(--accent-color);
+    outline-offset: -12px;
 
-    background-color: red;
+    background-color: #000d;
+
+    p {
+      color: #fff;
+      font-size: 20px;
+    }
+
+    &::after {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+
+      outline: solid 2px color-mix(in srgb, var(--accent-color) 70%, #000);
+      outline-offset: -2px;
+      content: '';
+    }
+  }
+
+  div.notes {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: calc(100dvw - 4px);
+    height: calc(100dvh - 4px);
+
+    color: #fff;
+
+    filter: drop-shadow(1px 1px 0 #000);
+    pointer-events: none;
 
     .note {
       position: absolute;
-      height: 16px;
+      right: 0;
+      bottom: 0;
       aspect-ratio: 1/1;
+      height: 16px;
 
       background-color: #55f;
-      mask-image: url(sprites/notes.png);
-      mask-size: auto 16px;
-      mask-position: 16px;
 
       filter: drop-shadow(2px 2px 0 #000);
+      mask-image: url('/sprites/notes.png');
 
-      top: 50px;
+      transition: transform 200ms ease-out;
     }
   }
 
   .container {
-    width: 100dvw;
-    height: 100dvh;
-
     display: grid;
+    grid-template-rows: 36px auto auto;
     grid-template-columns: 1fr;
-    grid-template-rows: 38px auto auto;
+    width: calc(100dvw - 4px);
+    height: calc(100dvh - 4px);
+
+    padding: 2px;
 
     outline: solid 2px var(--accent-color);
     outline-offset: -2px;
 
-    div.titlebar {
-      grid-row: 1;
-      outline: solid 2px var(--accent-color);
-      outline-offset: -2px;
+    background-color: #000;
+    color: #fff;
 
+    div.titlebar {
       display: flex;
-      align-items: center;
 
       position: relative;
+      grid-row: 1;
+      align-items: center;
+      outline: solid 2px var(--accent-color);
 
       * {
         pointer-events: none;
@@ -185,41 +253,40 @@
       }
 
       span.note {
-        height: 16px;
         aspect-ratio: 1/1;
-
-        background-image: url(sprites/notes.png);
-        background-size: auto 16px;
-        background-position: 16px;
+        height: 16px;
         margin-left: 0.6rem;
+
+        background-image: url('/sprites/notes.png');
+        background-position: 16px;
+        background-size: auto 16px;
       }
 
       div.buttons {
-        right: 0;
-        height: 100%;
-        width: fit-content;
+        display: flex;
 
         position: absolute;
-
-        display: flex;
+        right: 0;
         align-items: center;
-        gap: 0.2rem;
-        margin-right: 0.3rem;
+        width: fit-content;
+        height: 100%;
+        margin-right: 4px;
+        gap: 4px;
 
         button {
-          pointer-events: all;
-          cursor: pointer;
-
-          height: 28px;
           aspect-ratio: 1/1;
 
-          background-color: var(--accent-color);
-          background-image: url(sprites/window_buttons.png);
-          background-size: 200%;
-          image-rendering: pixelated;
+          height: 28px;
           border: none;
-          color: var(--accent-color);
+          outline: none;
+          background-image: url('/sprites/window_buttons.png');
+          background-size: 200%;
 
+          background-color: var(--accent-color);
+          color: var(--accent-color);
+          cursor: pointer;
+          image-rendering: pixelated;
+          pointer-events: all;
           transition: filter 100ms;
 
           &:hover {
@@ -227,46 +294,6 @@
           }
         }
       }
-    }
-
-    div.images {
-      grid-row: 2;
-
-      display: flex;
-      justify-content: center;
-      align-items: end;
-
-      height: fit-content;
-
-      div.sun {
-        height: 36px;
-        aspect-ratio: 1/1;
-
-        background-image: url(sprites/small_sun.png);
-        background-size: auto 36px;
-      }
-
-      div.gramophone {
-        height: 100px;
-        aspect-ratio: 1/1;
-
-        background-image: url(sprites/gramophone.png);
-        background-size: auto 100px;
-      }
-
-      div.niko {
-        height: 100px;
-        aspect-ratio: 1/1;
-
-        background-image: url(sprites/niko_jam.png);
-        background-size: auto 100px;
-
-        margin-left: -20px;
-      }
-    }
-
-    div.controls {
-      outline: solid 2px var(--accent-color);
     }
   }
 </style>

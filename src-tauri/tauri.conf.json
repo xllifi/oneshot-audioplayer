@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "oneshot-audioplayer",
+  "productName": "OneShot WME audio player",
   "version": "0.1.0",
   "identifier": "ru.xllifi.oneshot-audioplayer",
   "build": {
@@ -17,9 +17,11 @@
         "width": 360,
         "minHeight": 260,
         "height": 260,
+        "resizable": false,
         "decorations": false,
         "transparent": true,
-        "shadow": false
+        "shadow": false,
+        "dragDropEnabled": false
       }
     ],
     "security": {
@@ -35,6 +37,20 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "allowDowngrades": true,
+      "certificateThumbprint": "B97437DC6159C261B30E8956FE228869EFCA644B",
+      "digestAlgorithm": "sha256",
+      "nsis": null,
+      "signCommand": null,
+      "timestampUrl": "http://timestamp.comodoca.com",
+      "tsp": false,
+      "webviewInstallMode": {
+        "silent": true,
+        "type": "downloadBootstrapper"
+      },
+      "wix": null
+    }
   }
 }
