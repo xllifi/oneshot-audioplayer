@@ -106,7 +106,6 @@
 <style lang="scss">
   div.images {
     display: flex;
-    grid-row: 2;
     align-items: end;
     justify-content: center;
 

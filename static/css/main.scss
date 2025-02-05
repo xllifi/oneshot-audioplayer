@@ -16,26 +16,26 @@
   font-family: "Minecraft Seven";
   font-size: 16px;
   image-rendering: pixelated;
+}
 
-  button {
-    cursor: pointer;
-    outline: solid 2px var(--accent-color);
-    border: none;
-    background-color: #0000;
-    color: #fff;
+button {
+  cursor: pointer;
+  outline: solid 2px var(--accent-color);
+  border: none;
+  background-color: #0000;
+  color: #fff;
 
-    font-family: "Minecraft Seven";
-    font-size: 16px;
-    text-rendering: geometricPrecision;
-    padding: 4px;
+  font-family: "Minecraft Seven";
+  font-size: 16px;
+  text-rendering: geometricPrecision;
+  padding: 4px;
 
-    transition:
-      background-color 100ms,
-      color 100ms;
+  transition:
+    background-color 100ms,
+    color 100ms;
 
-    &:hover {
-      background-color: var(--accent-color);
-      color: #000;
-    }
+  &:hover {
+    background-color: var(--accent-color);
+    color: #000;
   }
 }
